@@ -1,0 +1,242 @@
+<!doctype html>
+<html style="width: 100%;">
+
+<head>
+<title>Simple Snake Game</title>
+<style>
+canvas {
+	border-style: ridge;
+    /*border-color: #5d5b5b;*/
+    border-color: #e66fad;
+    border-radius: 10px;
+    border-width: 21px;
+    max-width: 1000px;
+    min-width: 700px;
+    max-height: 600px;
+    min-height: 300px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    box-shadow: 0px 2px 26px;
+    background-color: #f3b6b6;
+    background-size:cover;
+}
+</style>
+</head>
+
+<body style="
+height:100%;
+/*background-color: #d6cece;*/
+/*background-color: #e2b9b9;*/
+background-color: #92466e;
+">
+<script>
+var canvas; var frames = 0;
+var EMPTY = 0, SNAKE = 1, FOOD = 2;
+
+canvas = document.createElement("canvas");
+canvas.width = 800;
+canvas.height = 600;
+ctx = canvas.getContext("2d");
+document.body.appendChild(canvas);
+
+//main();
+var grid = {
+	rows:30, 
+	cols:25,
+	_grid:[],
+
+	init: function (){
+		this._grid.length = [];
+		for(var x = 0; x < this.rows; x++){
+		var row = [];
+			for(var y =0; y< this.cols; y++){
+				row[y] = (0);
+			}
+		this._grid.push(row);
+		}
+	},
+
+	set: function (val, x, y){
+		this._grid[x][y] = val;
+	},
+
+	get: function (x,y){
+		return this._grid[x][y];
+	},
+
+	draw: function (){
+	for(var x = 0; x < grid.rows; x++){
+		for(var y =0; y< grid.cols; y++){
+			switch(grid._grid[x][y]){
+				case EMPTY: 
+				ctx.clearRect(x*canvas.width / grid.rows, y*canvas.height / grid.cols, canvas.width / grid.rows, canvas.height / grid.cols);
+				break;
+				case SNAKE:
+				ctx.fillStyle = "#196719";
+				ctx.fillRect(x*canvas.width / grid.rows, y*canvas.height / grid.cols, canvas.width / grid.rows, canvas.height / grid.cols);	
+				break;
+				case FOOD:
+				ctx.fillStyle = "#196719";
+				ctx.fillRect(x*canvas.width / grid.rows, y*canvas.height / grid.cols, canvas.width / grid.rows, canvas.height / grid.cols);	
+			}
+		}
+	}
+}
+}
+
+var game = {
+	paused: false,
+	youWin : "You Won!!!",
+	finishText: 'Now you can find another games to play here!',
+	init: function (){
+	grid.init();
+	snake.init();
+	fruit.init();
+	},
+	finish : function (){
+		game.paused = true;
+		var index = 0;
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		ctx.font = "30px Verdana";
+		// Create gradient
+		var gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+		gradient.addColorStop("0", "magenta");
+		gradient.addColorStop("0.5", "blue");
+		gradient.addColorStop("1.0", "red");
+		// Fill with gradient
+		ctx.fillStyle = gradient;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(game.youWin, canvas.width / 2, 70);
+	},
+
+	update: function (){
+		if(snake.queue[0].x == fruit.location.x && snake.queue[0].y == fruit.location.y){
+			snake.eat();
+			fruit.set();
+		}
+		if(myIndexOf(snake.queue[0], snake.queue) >0) game.init();
+	},
+
+	loop: function (){
+	frames++;
+	if(!game.paused && frames%calculateSpeed() == 0){
+		snake.move();
+		game.update();
+		grid.draw();
+		if(false){
+			game.finish();
+		}
+	}
+	window.requestAnimationFrame(game.loop, canvas);
+	}
+}
+
+var snake = {
+	queue : [],
+	direction: "left",
+	init: function(){
+		this.queue = [];
+		this.queue.push({x:15, y:15});
+		grid._grid[this.queue[0].x][this.queue[0].y] = SNAKE;
+	},
+	eat: function (){
+		snake.queue.unshift({x:fruit.location.x, y:fruit.location.y});
+	},
+	move: function(){
+		this.queue.length;
+		switch(this.direction){
+			case "left": if(this.queue[0].x == 0) { return game.init(); }
+			else {this.queue.unshift({x:this.queue[0].x - 1, y:this.queue[0].y});} break;
+
+			case "right": if(this.queue[0].x == grid.rows - 1) { return game.init(); }
+			this.queue.unshift({x:this.queue[0].x + 1, y:this.queue[0].y}); break;
+
+			case "up": if(this.queue[0].y == 0) { return game.init(); }
+
+			this.queue.unshift({x:this.queue[0].x, y:this.queue[0].y - 1}); break;
+
+			case "down": if(this.queue[0].y == grid.cols - 1) { return game.init(); }
+			this.queue.unshift({x:this.queue[0].x, y:this.queue[0].y + 1}); break;
+		};
+		grid.set(EMPTY, this.queue[this.queue.length - 1].x, this.queue[this.queue.length - 1].y);
+		grid.set(SNAKE, this.queue[0].x, this.queue[0].y);
+		this.queue.pop();
+	}
+}
+
+var fruit = {
+	location: null,
+	init: function (){
+		this.set();
+	},
+	set: function (){
+		var randLocation = randomLocation();
+		this.location = { x:randLocation.x, y:randLocation.y };
+		grid._grid[this.location.x][this.location.y] = FOOD;
+	}, 
+	get: function(){
+		return this.location;
+	}
+}
+
+function randomLocation(){
+	var emptyLocations = [];
+		for(var x = 0; x < grid.rows; x++){
+			for(var y =0; y< grid.cols; y++){
+				if(grid._grid[x][y] == EMPTY) emptyLocations.push({ x:x, y:y });
+			}
+		}
+	return emptyLocations[Math.floor(Math.random()*emptyLocations.length)];
+}
+
+function myIndexOf(obj, arr){
+	for(var i =0; i <arr.length; i++){
+		if(arr[i].x == obj.x && arr[i].y == obj.y && i > 1){
+			return i;
+		}
+	}
+	return -1;
+}
+
+function calculateSpeed(){
+	var leng = snake.queue.length, ret = 0;
+	if(leng > 0 && leng <= 5){ ret = 16; }
+	if(leng > 5 && leng <= 10){ ret = 14; }
+	if(leng > 10 && leng <= 15){ ret = 12; }
+	if(leng > 15 && leng <= 20){ ret = 10; }
+	if(leng > 20 && leng <= 25){ ret = 9; }
+	if(leng > 25 && leng <= 30){ ret = 8; }
+	if(leng > 30 && leng <= 35){ ret = 7; }
+	if(leng > 35){ ret = 6; }
+	return ret;
+}
+
+function main(){
+	document.addEventListener("keydown", function (event){
+		switch(event.keyCode){
+			case 37: if(snake.direction != "right" && !game.paused) snake.direction = "left"; break;
+			case 38: if(snake.direction != "down" && !game.paused) snake.direction = "up"; break;
+			case 39: if(snake.direction != "left" && !game.paused) snake.direction = "right"; break;
+			case 40: if(snake.direction != "up" && !game.paused) snake.direction = "down"; break;
+			case 32: if(game.paused == false) game.paused = true; else game.paused = false; break;
+		}
+	});
+
+	game.init();
+	game.loop();
+}
+
+main();
+
+</script>
+</body>
+
+</html>
